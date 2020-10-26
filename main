@@ -1,0 +1,60 @@
+#! /usr/bin python3
+import os
+from time import sleep
+from json import loads
+
+
+def get_file_formats():
+    # read the file formats.json and returns a dict containing the file formats
+    with open("./formats.json") as file_types_archive:
+        return loads(file_types_archive.read())
+
+
+def get_target_dirs():
+    # read the file targets.json and returns a dict containing the file formats
+    with open("./target.json") as target:
+        return loads(target.read())
+
+
+def scan_dir(path="."):
+    # scan the give directory path and returns
+    # an array of tuples that contain all the files
+    file_list = []
+    with os.scandir(path) as entries:
+        for item in entries:
+            if(item.is_file()):
+                file_list.append(
+                    ((item.path, item.name), item.name.split(".")[-1]))
+    return file_list
+
+
+def move_file(file, file_format):
+    # move the file
+    target_dir = get_target_dirs()
+    home = target_dir['root'] if target_dir['root'] else os.getenv('HOME')
+    src = file[0]
+    dst = f"{home}/{target_dir[file_format]}/{file[1]}"
+    try:
+        os.replace(src, dst)
+    except OSError as os_error:
+        print(f"failed to move {src} -> {dst} ")
+
+
+def start():
+    file_formats = get_file_formats()
+    files = scan_dir(f"{os.getenv('HOME')}/Downloads")
+    for file in files:
+        try:
+            move_file(file[0], file_formats[file[1]])
+        except KeyError:
+            pass
+
+
+def main():
+    while True:
+        start()
+        sleep(0.5)
+
+
+if __name__ == "__main__":
+    main()
